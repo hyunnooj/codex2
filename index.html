@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>피노키오의 모험 - 롤플레잉 게임</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+      background: #f4efe6;
+      color: #2e2214;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px 16px 48px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .game {
+      width: min(960px, 100%);
+      background: #fffaf2;
+      border-radius: 24px;
+      box-shadow: 0 18px 40px rgba(86, 61, 30, 0.15);
+      padding: 32px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #e5d7c3;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: clamp(24px, 3vw, 36px);
+      margin: 0;
+    }
+
+    .subtitle {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: #8b6b46;
+      letter-spacing: 0.02em;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .stat {
+      background: #f2e3d0;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .story {
+      background: #fff;
+      border: 1px solid #ead7bf;
+      border-radius: 18px;
+      padding: 20px;
+      min-height: 220px;
+      line-height: 1.7;
+      font-size: 16px;
+    }
+
+    .log {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .log li {
+      background: #fff9f0;
+      border-left: 5px solid #c47a3a;
+      padding: 10px 14px;
+      border-radius: 10px;
+    }
+
+    .choices {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .choices button {
+      background: #c47a3a;
+      color: #fff;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .choices button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(196, 122, 58, 0.25);
+    }
+
+    .choices button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .footer {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .progress {
+      font-size: 14px;
+      color: #6b4d2c;
+    }
+
+    .reset {
+      background: transparent;
+      border: 2px dashed #c47a3a;
+      color: #c47a3a;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <header>
+      <div>
+        <p class="subtitle">나무 인형에서 진짜 소년이 되기 위한 여정</p>
+        <h1>피노키오의 모험</h1>
+      </div>
+      <div class="stats">
+        <span class="stat" id="stat-courage">용기 2</span>
+        <span class="stat" id="stat-honesty">정직 2</span>
+        <span class="stat" id="stat-kindness">친절 2</span>
+        <span class="stat" id="stat-energy">기력 3</span>
+      </div>
+    </header>
+
+    <section class="story">
+      <ul class="log" id="log"></ul>
+    </section>
+
+    <section class="choices" id="choices"></section>
+
+    <div class="footer">
+      <div class="progress" id="progress">장면 1 / 6</div>
+      <button class="reset" id="reset">처음부터 다시</button>
+    </div>
+  </main>
+
+  <script>
+    const state = {
+      courage: 2,
+      honesty: 2,
+      kindness: 2,
+      energy: 3,
+      scene: 0,
+      log: [],
+    };
+
+    const scenes = [
+      {
+        title: "나무 공방의 아침",
+        text: "제페토 할아버지가 새 옷을 꿰매고 있다. 당신은 오늘 숲으로 모험을 떠나겠다고 말하려고 한다.",
+        choices: [
+          {
+            label: "솔직하게 모험을 떠난다고 말한다.",
+            effect: { honesty: +1, courage: +1 },
+            next: 1,
+            log: "당신은 떨리는 목소리로도 정직하게 마음을 전했다.",
+          },
+          {
+            label: "조용히 밖으로 몰래 빠져나간다.",
+            effect: { courage: +1, honesty: -1 },
+            next: 1,
+            log: "모험심은 커졌지만, 양심이 살짝 아렸다.",
+          },
+        ],
+      },
+      {
+        title: "숲 속의 갈림길",
+        text: "안개 낀 숲에서 길이 둘로 갈라진다. 한쪽은 어둡고, 다른 쪽은 빛이 비친다.",
+        choices: [
+          {
+            label: "어두운 길로 들어가 위기를 돌파한다.",
+            effect: { courage: +2, energy: -1 },
+            next: 2,
+            log: "당신의 발걸음은 떨렸지만, 용기가 한층 자랐다.",
+          },
+          {
+            label: "밝은 길을 따라 안전하게 이동한다.",
+            effect: { kindness: +1, energy: +1 },
+            next: 2,
+            log: "몸과 마음이 편안해졌다.",
+          },
+        ],
+      },
+      {
+        title: "여우와 고양이",
+        text: "여우와 고양이가 돈나무를 심으면 부자가 된다며 달콤한 말을 한다.",
+        choices: [
+          {
+            label: "속지 않고 정직하게 거절한다.",
+            effect: { honesty: +2 },
+            next: 3,
+            log: "유혹을 이겨냈다. 당신의 코는 그대로다.",
+          },
+          {
+            label: "잠시 고민하지만, 선의로 그들을 돕는다.",
+            effect: { kindness: +2, honesty: -1 },
+            next: 3,
+            log: "친절은 빛났지만 약간 속은 기분이다.",
+          },
+        ],
+      },
+      {
+        title: "학교 앞",
+        text: "학생들이 웃음소리를 내며 뛰어간다. 당신은 친구가 필요하다고 느낀다.",
+        choices: [
+          {
+            label: "친구들에게 먼저 다가가 인사한다.",
+            effect: { kindness: +1, courage: +1 },
+            next: 4,
+            log: "당신의 진심에 학생들이 환히 웃었다.",
+          },
+          {
+            label: "멀리서 지켜보며 기회를 기다린다.",
+            effect: { courage: -1, honesty: +1 },
+            next: 4,
+            log: "조심스러운 관찰로 상황을 파악했다.",
+          },
+        ],
+      },
+      {
+        title: "푸른 요정의 시험",
+        text: "푸른 요정이 나타나 질문한다. \"진짜 소년이 되려면 무엇이 가장 필요할까?\"",
+        choices: [
+          {
+            label: "\"정직함과 용기\"라고 답한다.",
+            effect: { honesty: +1, courage: +1 },
+            next: 5,
+            log: "요정이 고개를 끄덕이며 미소 짓는다.",
+          },
+          {
+            label: "\"친절과 배려\"라고 답한다.",
+            effect: { kindness: +2 },
+            next: 5,
+            log: "요정이 따뜻한 빛을 내려준다.",
+          },
+        ],
+      },
+      {
+        title: "돌아오는 길",
+        text: "모험을 마친 당신은 공방으로 돌아온다. 제페토가 기다린다.",
+        choices: [
+          {
+            label: "모험의 이야기를 모두 들려준다.",
+            effect: { honesty: +1 },
+            next: null,
+            log: "정직한 마음이 당신을 더 사람답게 만든다.",
+          },
+          {
+            label: "힘들었던 순간을 덮고 웃어 넘긴다.",
+            effect: { courage: +1 },
+            next: null,
+            log: "당신은 아직도 조금 더 성장할 여지가 있다.",
+          },
+        ],
+      },
+    ];
+
+    const logEl = document.getElementById("log");
+    const choicesEl = document.getElementById("choices");
+    const progressEl = document.getElementById("progress");
+
+    function updateStats() {
+      document.getElementById("stat-courage").textContent = `용기 ${state.courage}`;
+      document.getElementById("stat-honesty").textContent = `정직 ${state.honesty}`;
+      document.getElementById("stat-kindness").textContent = `친절 ${state.kindness}`;
+      document.getElementById("stat-energy").textContent = `기력 ${state.energy}`;
+    }
+
+    function renderLog() {
+      logEl.innerHTML = "";
+      state.log.forEach((entry) => {
+        const item = document.createElement("li");
+        item.textContent = entry;
+        logEl.appendChild(item);
+      });
+    }
+
+    function applyEffect(effect) {
+      if (!effect) return;
+      state.courage += effect.courage ?? 0;
+      state.honesty += effect.honesty ?? 0;
+      state.kindness += effect.kindness ?? 0;
+      state.energy += effect.energy ?? 0;
+    }
+
+    function addSceneText(scene) {
+      state.log.push(`【${scene.title}】 ${scene.text}`);
+    }
+
+    function showEnding() {
+      const total = state.courage + state.honesty + state.kindness + state.energy;
+      let ending;
+      if (total >= 14) {
+        ending = "푸른 요정이 당신을 진짜 소년으로 변화시켰다!";
+      } else if (state.honesty >= 5) {
+        ending = "정직함을 바탕으로 새로운 모험을 약속받았다.";
+      } else if (state.kindness >= 5) {
+        ending = "따뜻한 마음으로 친구들이 함께해 주었다.";
+      } else {
+        ending = "아직은 나무 인형이지만, 성장의 길이 열려 있다.";
+      }
+      state.log.push(`결말: ${ending}`);
+      renderLog();
+      choicesEl.innerHTML = "";
+      const restart = document.createElement("button");
+      restart.textContent = "다시 도전하기";
+      restart.addEventListener("click", resetGame);
+      choicesEl.appendChild(restart);
+      progressEl.textContent = "모험 완료";
+    }
+
+    function renderScene(index) {
+      const scene = scenes[index];
+      if (!scene) return;
+      state.scene = index;
+      addSceneText(scene);
+      renderLog();
+      choicesEl.innerHTML = "";
+      scene.choices.forEach((choice) => {
+        const button = document.createElement("button");
+        button.textContent = choice.label;
+        button.addEventListener("click", () => {
+          applyEffect(choice.effect);
+          updateStats();
+          state.log.push(choice.log);
+          if (choice.next === null) {
+            showEnding();
+          } else {
+            renderScene(choice.next);
+          }
+        });
+        choicesEl.appendChild(button);
+      });
+      progressEl.textContent = `장면 ${index + 1} / ${scenes.length}`;
+      updateStats();
+    }
+
+    function resetGame() {
+      state.courage = 2;
+      state.honesty = 2;
+      state.kindness = 2;
+      state.energy = 3;
+      state.scene = 0;
+      state.log = [];
+      renderScene(0);
+    }
+
+    document.getElementById("reset").addEventListener("click", resetGame);
+
+    resetGame();
+  </script>
+</body>
+</html>
